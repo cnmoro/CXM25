@@ -44,12 +44,13 @@ measured on real passages with `examples/benchmark.py` (see
 
 ## What it is
 
-> **What does CXM25 stand for?** "Co-occurrence-eXtended Matching 25". The
+> **What does CXM25 stand for?** "Character-gram eXtended Matching 25". The
+> *C* stands for **character-gram matching**, the model's signature component;
+> *X* for eXtended, i.e. a next-step, extended BM25; *M* for Matching. The
 > *25* mirrors **BM25** (BM + 25), signalling that this is the next step in
-> that lineage. The "co-occurrence" part is a leftover from the original
-> design: a PMI-weighted bi-term co-occurrence component that was later
-> dropped because it hurt accuracy, so the name stuck even though it no longer
-> appears in the final score.
+> that lineage. (An early design had a PMI bi-term co-occurrence component;
+> it was dropped because it hurt accuracy, so the "co-occurrence" reading was
+> retired in favour of "character-gram".)
 
 CXM25 is a lexical (term-overlap) retrieval model designed as a better BM25.
 It keeps everything that makes BM25 good — term saturation, document-length
