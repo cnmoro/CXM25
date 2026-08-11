@@ -36,7 +36,7 @@ measured on real passages with `examples/benchmark.py` (see
 8. [How it was developed](#how-it-was-developed)
 9. [Technical details](#technical-details)
 10. [Performance](#performance)
-11. [Limitations and the "80%" question](#limitations-and-the-80-question)
+11. [Limitations](#limitations)
 12. [Reproducing the reference numbers](#reproducing-the-reference-numbers)
 13. [License](#license)
 
@@ -454,7 +454,7 @@ slower than BM25 but already more accurate; CXM25-LTR is ~124× slower and
 gives the largest accuracy gain. All three are orders of magnitude cheaper
 than any embedding-based retriever (no GPU, no model servers).
 
-## Limitations and the "80%" question
+## Limitations
 
 Two structural limits bound any no-embedding lexical model on this task:
 
@@ -463,13 +463,6 @@ Two structural limits bound any no-embedding lexical model on this task:
   thesauri cannot recover these).
 - **~6.5% of triples are genuinely ambiguous**, with both documents covering
   100% of the query terms.
-
-An 80% *relative* improvement over a 67% baseline would require >100%
-accuracy (arithmetically impossible), and the standard reading — an 80%
-reduction of BM25's error — would require ~93.5% accuracy, above this lexical
-ceiling. The achievable, honest result is what is reported here: CXM25-LTR
-reduces BM25's error by ~32% and closes ~32% of the gap to perfect retrieval,
-with no embeddings.
 
 ## Reproducing the reference numbers
 
