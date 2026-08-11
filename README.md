@@ -33,9 +33,10 @@ documents), BM25 hits **64.4%** and CXM25-LTR hits **70.2%**.
 7. [The learned variant (CXM25-LTR)](#the-learned-variant-cxm25-ltr)
 8. [How it was developed](#how-it-was-developed)
 9. [Technical details](#technical-details)
-10. [Limitations and the "80%" question](#limitations-and-the-80-question)
-11. [Reproducing the reference numbers](#reproducing-the-reference-numbers)
-12. [License](#license)
+10. [Performance](#performance)
+11. [Limitations and the "80%" question](#limitations-and-the-80-question)
+12. [Reproducing the reference numbers](#reproducing-the-reference-numbers)
+13. [License](#license)
 
 ---
 
@@ -378,6 +379,50 @@ The baked model's feature space must match the statistics it was trained with.
 out of the box. If you build your *own* statistics (e.g. for a domain-specific
 corpus), you should retrain the model on those statistics — the features are
 corpus-relative (idf, gram frequencies, thesaurus).
+
+## Performance
+
+Throughput measured with `examples/benchmark.py` on the shipped reference
+corpus statistics, scoring real validation passages of MS MARCO PT-BR (~60
+words each) against short queries. Single process, Python 3.12, 16-core Linux
+server (XGBoost predict is multithreaded; everything else single-threaded).
+`docs/s` = tokenized documents scored per second; `ms/query@2k` = wall-clock
+latency to score one query against 2,000 candidate documents.
+
+| model | docs/s (score) | ms/query @ 2,000 docs | vs BM25 |
+|------:|---------------:|----------------------:|--------:|
+| BM25 | ~2,340,000 | ~1.0 | reference |
+| CXM25 | ~50,000 | ~40 | ~47× slower |
+| CXM25-LTR | ~19,000 | ~108 | ~124× slower |
+| indexing (tokenize all) | ~1,400 docs/s | — | shared by all |
+
+How to read this:
+
+- **Preprocessing (tokenisation/stemming) is the same pipeline for every
+  model**, so indexing cost is identical; the table isolates *scoring* cost.
+- The scoring cost is Python overhead, not algorithmics: CXM25 pays for
+  character-gram set construction and phrase scanning per document, CXM25-LTR
+  additionally extracts the 31-feature vector per document.
+- **For collection-scale retrieval, never score every document.** Use an
+  inverted index over content stems (both BM25 and CXM25 are pure
+  term-overlap scorers, so they use the same posting lists) and score only the
+  candidates that share at least one query term. Per-query latency then scales
+  with *matched* documents, not collection size. For a 1M-document index where
+  ~2% of documents match a query term (~20K candidates): BM25 ≈ 9 ms, CXM25 ≈
+  400 ms.
+- **Use CXM25-LTR as a reranker.** Generate candidates with BM25/CXM25 (fast,
+  index-friendly), then rerank the top 1,000 with the learned model: ~108 ms
+  for 2,000 documents → ~54 ms for 1,000. This is the standard
+  retrieve-then-rerank setup and keeps latency in the tens of milliseconds
+  while adding the ~10 accuracy points over BM25.
+- **Parallelise freely** — scoring is embarrassingly parallel across documents
+  and queries (and tokenization across documents), so throughput scales with
+  cores.
+
+The accuracy/speed trade-off: BM25 is fastest but weakest; CXM25 is ~47×
+slower than BM25 but already more accurate; CXM25-LTR is ~124× slower and
+gives the largest accuracy gain. All three are orders of magnitude cheaper
+than any embedding-based retriever (no GPU, no model servers).
 
 ## Limitations and the "80%" question
 
