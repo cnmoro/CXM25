@@ -94,6 +94,50 @@ def test_tokenize():
     assert True
 
 
+def test_rank_high_level_api():
+    import cxm25
+    docs = [
+        "As melhores praias quentes da California em dezembro para o inverno ficam na costa sul",
+        "A California é um estado dos Estados Unidos localizado na costa oeste",
+        "A anemia é um número reduzido de glóbulos vermelhos no sangue",
+    ]
+    res = cxm25.rank("praias da california em dezembro", docs)
+    assert len(res) == 3
+    assert res[0]["rank"] == 1
+    assert res[0]["doc"] == docs[0]              # the topic doc ranks first
+    assert res[0]["score"] > res[-1]["score"]
+    # ties keep document order
+    for i, r in enumerate(res):
+        assert r["rank"] == i + 1
+
+
+def test_rank_model_selection_and_top_k():
+    import cxm25
+    docs = [
+        "As melhores praias quentes da California em dezembro para o inverno ficam na costa sul",
+        "A California é um estado dos Estados Unidos localizado na costa oeste",
+        "A anemia é um número reduzido de glóbulos vermelhos no sangue",
+    ]
+    for model in ("bm25", "cxm25"):
+        res = cxm25.rank("praias da california em dezembro", docs, model=model)
+        assert res[0]["doc"] == docs[0]
+    res2 = cxm25.rank("praias da california em dezembro", docs, top_k=2)
+    assert len(res2) == 2
+
+
+def test_rank_reuses_prebuilt_stats():
+    import cxm25
+    from cxm25 import build_corpus_stats
+    docs = [
+        "As melhores praias quentes da California em dezembro para o inverno ficam na costa sul",
+        "A California é um estado dos Estados Unidos localizado na costa oeste",
+        "A anemia é um número reduzido de glóbulos vermelhos no sangue",
+    ]
+    stats = build_corpus_stats(docs)
+    res = cxm25.rank("praias da california em dezembro", docs, stats=stats)
+    assert res[0]["doc"] == docs[0]
+
+
 def tokenize(text):
     from cxm25.stats import tokenize_doc
     return tokenize_doc(Normalizer(), text)

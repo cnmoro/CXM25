@@ -8,17 +8,19 @@ The core algorithm (`CXM25`) has **zero runtime dependencies** (pure Python
 standard library, including a vendored Portuguese Snowball stemmer). The
 learned variant (`CXM25-LTR`) needs only the optional `xgboost` dependency.
 
-| Model | Pairwise accuracy * | Error reduction vs BM25 |
-|------:|--------------------:|------------------------:|
-| BM25 (tuned) | 0.6734 | — |
-| **CXM25** (pure, no training) | **0.7048** | 9.6% |
-| **CXM25-LTR** (baked model, 12M triplets) | **0.7775** | 31.9% |
+| Model | Pairwise accuracy * | Error reduction vs BM25 | Relative scoring speed |
+|------:|--------------------:|------------------------:|-----------------------:|
+| BM25 (tuned) | 0.6734 | — | 1× (reference) |
+| **CXM25** (pure, no training) | **0.7048** | 9.6% | ~47× slower |
+| **CXM25-LTR** (baked model, 12M triplets) | **0.7775** | 31.9% | ~124× slower |
 
 \* fraction of `(query, positive, negative)` triples where the positive is
 scored above the negative, measured on the held-out validation split of
 `cnmoro/AllTripletsMsMarco-PTBR` (527,832 triples). On the per-query
 retrieval task (positive ranked #1 among all of the query's candidate
-documents), BM25 hits **64.4%** and CXM25-LTR hits **70.2%**.
+documents), BM25 hits **64.4%** and CXM25-LTR hits **70.2%**. Throughput is
+measured on real passages with `examples/benchmark.py` (see
+[Performance](#performance)).
 
 ---
 
@@ -68,6 +70,8 @@ using gradient-boosted decision trees (XGBoost) — still fully lexical.
 
 The package ships:
 
+- `cxm25.rank(query, docs, ...)` — the one-call API (tokenizes, builds
+  statistics, scores and returns a ranked list).
 - `cxm25.CXM25` — the pure algorithm, tuned defaults baked in.
 - `cxm25.BM25` — a reference implementation for baseline comparisons.
 - `cxm25.load_baked_ltr()` — the pre-trained `CXM25-LTR` model (12M MS MARCO
@@ -88,30 +92,55 @@ Requires Python ≥ 3.9.
 
 ## Quickstart
 
+The one-call API does everything for you — tokenization, corpus statistics and
+scoring:
+
 ```python
 import cxm25
-from cxm25 import Normalizer
-from cxm25.stats import tokenize_doc
 
-norm = Normalizer(lang="pt")
+results = cxm25.rank(
+    query="praias da california em dezembro",
+    docs=[
+        "As melhores praias da California para o clima quente do inverno ...",
+        "A California é um estado dos Estados Unidos na costa oeste ...",
+    ],
+    lang="pt",
+    gram_n=3,
+)
 
-# 1) build corpus statistics (idf, char-gram df) from your collection
-docs = ["As melhores praias da California para o clima quente do inverno ...",
-        "A California é um estado dos Estados Unidos na costa oeste ..."]
-stats = cxm25.build_corpus_stats(docs, gram_n=3)
-avg_len = sum(len(norm(d)) for d in docs) / len(docs)
-
-# 2) score a query against documents
-cx = cxm25.CXM25(stats.df, stats.df2, stats.N, avg_len, gdf=stats.gdf)
-query = norm("praias da california em dezembro")
-for d in docs:
-    print(cx.score(query, tokenize_doc(norm, d)))
+for r in results:
+    print(r["rank"], round(r["score"], 3), r["doc"])
 ```
 
-To retrieve, score every candidate document and rank descending. The scorer
-objects expose `prepare(query_tokens)` / `score_prepared(ctx, doc)` so one
-query can be scored against many documents without recomputing the query side
-(see `examples/demo.py`).
+`rank()` returns `[{"rank": int, "doc": str, "score": float}, ...]` sorted by
+score. Pick the model with `model=`:
+
+- `model="cxm25"` (default) — the pure algorithm; statistics are built from
+  your documents automatically.
+- `model="bm25"` — the reference baseline.
+- `model="ltr"` — the baked CXM25-LTR model (requires xgboost). It uses the
+  shipped reference statistics, so it works out of the box on Portuguese
+  text, and is best used as a reranker over passage-length documents.
+
+For production workloads (large corpora, repeated ranking), build the
+statistics once and reuse a scorer instead of rebuilding them per call:
+
+```python
+from cxm25 import Normalizer, build_corpus_stats
+from cxm25.scoring import CXM25
+
+stats = build_corpus_stats(docs, gram_n=3)          # build once
+avg_len = sum(len(Normalizer()(d)) for d in docs) / len(docs)
+cx = CXM25(stats.df, stats.df2, stats.N, avg_len, gdf=stats.gdf)
+
+qt = Normalizer()("praias da california em dezembro")
+ctx = cx.prepare(qt)                                 # prepare the query once
+for d in docs:                                       # ... then score each doc
+    print(cx.score_prepared(ctx, d))
+```
+
+You can also pass a prebuilt `stats=` to `rank()`, or hand it an already-built
+scorer via `scorer=`.
 
 ## The baked model
 

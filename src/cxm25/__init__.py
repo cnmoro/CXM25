@@ -22,6 +22,7 @@ from .baked import (
     load_baked_meta,
     load_baked_stats,
 )
+from .rank import rank
 from .scoring import BM25, CXM25, grams
 from .stats import CorpusStats, build_coindex, build_corpus_stats
 from .textnorm import Normalizer
@@ -51,6 +52,7 @@ __all__ = [
     "load_baked_ltr",
     "load_baked_meta",
     "load_baked_stats",
+    "rank",
     "FEATURES",
     "FeatureExtractor",
     "LTRScorer",
