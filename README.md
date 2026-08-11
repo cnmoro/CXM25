@@ -2,7 +2,8 @@
 
 **BM25-inspired lexical retrieval with no embeddings.** A drop-in replacement
 for BM25 scoring that is significantly more accurate on hard retrieval pairs,
-plus a learned refinement (`CXM25-LTR`) that ships with a pre-trained model.
+plus a learned refinement (`CXM25-LTR`, **learning-to-rank**) that ships with
+a pre-trained model.
 
 The core algorithm (`CXM25`) has **zero runtime dependencies** (pure Python
 standard library, including a vendored Portuguese Snowball stemmer). The
@@ -283,10 +284,10 @@ compared against it on identical input.
 
 ## The learned variant (CXM25-LTR)
 
-`CXM25-LTR` is a gradient-boosted binary classifier (XGBoost) over **31
-generic lexical features** extracted per `(query, document)` pair. Every
-feature is a standard IR signal derived from corpus statistics — no embeddings,
-no hand-written dataset-specific rules:
+`CXM25-LTR` (learning-to-rank) is a gradient-boosted binary classifier (XGBoost)
+over **31 generic lexical features** extracted per `(query, document)` pair.
+Every feature is a standard IR signal derived from corpus statistics — no
+embeddings, no hand-written dataset-specific rules:
 
 | # | feature | # | feature |
 |---:|---|---:|---|
