@@ -1,0 +1,44 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:        # manual trigger ("dispatch a PyPI publish")
+  push:
+    tags:
+      - "v*"                # also publish on tag pushes, e.g. v0.1.0
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       # needed for trusted publishing if enabled
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
+      - name: Run tests
+        run: |
+          python -m pip install -e ".[test]"
+          python -m pytest -q
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # The PYPI_TOKEN secret is read at runtime. Add it in the repo
+          # settings (Settings -> Secrets and variables -> Actions) before
+          # triggering this workflow. It should be a PyPI API token with
+          # upload permission on the "cxm25" project.
+          password: ${{ secrets.PYPI_TOKEN }}

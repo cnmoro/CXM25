@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cxm25"
+version = "0.1.0"
+description = "CXM25 and CXM25-LTR: BM25-inspired lexical retrieval models with no embeddings"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "CXM25 contributors"}]
+keywords = ["information-retrieval", "bm25", "lexical", "retrieval", "ranking", "ir"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Indexing",
+]
+dependencies = []
+
+[project.optional-dependencies]
+ltr = ["xgboost>=1.7"]
+test = ["pytest", "xgboost>=1.7"]
+
+[project.urls]
+Homepage = "https://github.com/cnmoro/CXM25"
+Repository = "https://github.com/cnmoro/CXM25"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cxm25 = ["data/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
