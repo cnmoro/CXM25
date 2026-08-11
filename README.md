@@ -41,6 +41,13 @@ documents), BM25 hits **64.4%** and CXM25-LTR hits **70.2%**.
 
 ## What it is
 
+> **What does CXM25 stand for?** "Co-occurrence-eXtended Matching 25". The
+> *25* mirrors **BM25** (BM + 25), signalling that this is the next step in
+> that lineage. The "co-occurrence" part is a leftover from the original
+> design: a PMI-weighted bi-term co-occurrence component that was later
+> dropped because it hurt accuracy, so the name stuck even though it no longer
+> appears in the final score.
+
 CXM25 is a lexical (term-overlap) retrieval model designed as a better BM25.
 It keeps everything that makes BM25 good — term saturation, document-length
 normalisation, IDF weighting — and fixes its main weaknesses by adding
